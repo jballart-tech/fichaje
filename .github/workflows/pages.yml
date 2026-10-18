@@ -23,8 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Preparar solo los archivos de la app
+        run: |
+          mkdir _site
+          cp index.html sw.js manifest.webmanifest hora.txt xlsx.full.min.js *.png _site/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - id: despliegue
         uses: actions/deploy-pages@v4
