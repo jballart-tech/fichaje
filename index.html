@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tarjeta de Fichaje</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fichaje">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#F4F5F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1E2427" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: una columna de móvil, como un panel de armario: reloj arriba, pulsadores, tarjeta del día y resumen. */
+:root {
+  --bg: #E2E5E2;        /* gris RAL 7035 de envolvente */
+  --panel: #F4F5F3;
+  --ink: #1D2326;
+  --muted: #586266;
+  --line: #C4CAC6;
+  --bezel: #9AA2A3;
+  --accent: #1F6CAD;    /* azul RAL 5015 */
+  --go: #2C8A46;
+  --warn: #D49A00;
+  --stop: #C3322B;
+  --go-soft: #DCEFE1;
+  --warn-soft: #F7EBC8;
+  --stop-soft: #F6DCDA;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  -webkit-text-size-adjust: 100%;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15191B; --panel: #1E2427; --ink: #E5E9E7; --muted: #98A2A6; --line: #313A3E; --bezel: #4A5458;
+    --accent: #5BA3E2; --go: #3DB061; --warn: #F0B62C; --stop: #E2574E;
+    --go-soft: #1C3324; --warn-soft: #3A3115; --stop-soft: #3E1F1D;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--panel); }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel); }
+img { max-width: 100%; }
+a { color: var(--accent); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 560px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; }
+.marca { font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.tabs { display: flex; gap: 4px; }
+.tabs button { border: 1px solid transparent; background: none; padding: 6px 8px; border-radius: 6px; font-weight: 500; color: var(--muted); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-color: var(--line); background: var(--bg); }
+
+main .wrap { display: flex; flex-direction: column; gap: 16px; padding-block: 16px 40px; }
+.vista { display: flex; flex-direction: column; gap: 16px; }
+
+.aviso { border: 1px solid var(--warn); background: var(--warn-soft); padding: 10px 12px; border-radius: 8px; display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; }
+.aviso p { margin: 0; }
+.aviso button { flex: none; }
+
+.reloj-panel { text-align: center; display: flex; flex-direction: column; gap: 4px; padding-block: 8px; }
+.fecha { color: var(--muted); }
+.reloj { font-family: var(--font-mono); font-size: clamp(44px, 14vw, 64px); font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.1; }
+.estado { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--font-display); font-weight: 600; font-size: 19px; letter-spacing: .05em; text-transform: uppercase; }
+.piloto { width: 14px; height: 14px; border-radius: 50%; background: var(--bezel); box-shadow: inset 0 0 0 2px rgba(0,0,0,.15); }
+.piloto.trabajando { background: var(--go); box-shadow: 0 0 0 3px var(--go-soft), 0 0 10px var(--go); }
+.piloto.pausa { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft), 0 0 10px var(--warn); }
+.verif { font-size: 13px; color: var(--muted); }
+.verif.ok::before { content: "● "; color: var(--go); }
+.verif.ko::before { content: "● "; color: var(--warn); }
+
+.botonera { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; justify-items: center; }
+.pulsador { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; padding: 4px; }
+.pulsador .cap { width: 84px; height: 84px; border-radius: 50%; border: 7px solid var(--bezel); background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.45), transparent 45%), var(--c); box-shadow: 0 4px 0 rgba(0,0,0,.25), inset 0 -4px 8px rgba(0,0,0,.2); transition: transform .08s, box-shadow .08s; }
+.pulsador:active:not(:disabled) .cap { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.25), inset 0 -2px 6px rgba(0,0,0,.2); }
+.pulsador .lbl { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
+.pulsador:disabled { cursor: default; }
+.pulsador:disabled .cap { filter: grayscale(.85); opacity: .35; box-shadow: none; }
+.pulsador:disabled .lbl { color: var(--muted); }
+.go { --c: var(--go); } .warn { --c: var(--warn); } .stop { --c: var(--stop); }
+.norma { text-align: center; font-size: 12px; color: var(--muted); margin: -6px 0 0; }
+
+.campos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.campo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+.campo input, .campo select { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; font-size: 16px; color: var(--ink); width: 100%; }
+
+.tarjeta { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.tarjeta h2 { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .06em; text-transform: uppercase; margin: 0; }
+.cab { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cab small { color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.kpi { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kpi span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.kpi b { font-family: var(--font-mono); font-weight: 500; font-size: 20px; font-variant-numeric: tabular-nums; }
+.barra { height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; }
+.barra i { display: block; height: 100%; width: 0; background: var(--go); transition: width .4s; }
+.barra.extra i { background: var(--accent); }
+
+.fichas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ficha { display: grid; grid-template-columns: 58px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px dashed var(--line); }
+.ficha:first-child { border-top: 0; }
+.ficha time { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 16px; }
+.ficha .t { display: flex; flex-direction: column; min-width: 0; }
+.ficha .t small { color: var(--muted); overflow-wrap: anywhere; }
+.ficha.tachada time, .ficha.tachada .t > span { text-decoration: line-through; color: var(--muted); }
+.tipo-entrada { color: var(--go); } .tipo-pausa, .tipo-reanudar { color: var(--warn); } .tipo-salida { color: var(--stop); } .tipo-anula { color: var(--muted); }
+.t > span { font-weight: 600; }
+.mini { border: 1px solid var(--line); background: none; border-radius: 6px; padding: 4px 8px; font-size: 13px; color: var(--accent); }
+.vacio { color: var(--muted); margin: 0; }
+
+.resumen { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.resumen .tarjeta { gap: 8px; }
+.cifra { font-family: var(--font-mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+.cifra small { font-size: 14px; color: var(--muted); }
+.linea { display: flex; justify-content: space-between; gap: 6px; font-size: 13px; }
+.linea span { color: var(--muted); }
+.linea b { font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.pos { color: var(--go); } .neg { color: var(--stop); }
+.semana { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; align-items: end; height: 56px; }
+.semana div { display: flex; flex-direction: column; align-items: center; gap: 2px; height: 100%; justify-content: flex-end; font-size: 11px; color: var(--muted); }
+.semana i { display: block; width: 100%; max-width: 18px; background: var(--go); border-radius: 3px 3px 0 0; min-height: 2px; }
+.semana .hoy { color: var(--ink); font-weight: 600; }
+
+.herramientas { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.herramientas .campo { flex: 1 1 160px; }
+.btn { border: 1px solid var(--accent); background: var(--accent); color: var(--panel); border-radius: 8px; padding: 10px 14px; font-weight: 600; }
+.btn.sec { background: none; color: var(--accent); }
+.btn:disabled { opacity: .5; cursor: default; }
+
+.dias { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.dia { border-top: 1px solid var(--line); }
+.dia:first-child { border-top: 0; }
+.dia-fila { width: 100%; display: grid; grid-template-columns: 64px 1fr auto; gap: 10px; align-items: center; padding: 11px 14px; border: 0; background: none; text-align: left; }
+.dia-fila .d { font-family: var(--font-display); font-weight: 600; font-size: 17px; text-transform: capitalize; }
+.dia-fila .h { font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-width: 0; }
+.dia-fila .r { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.dia-fila .r small { display: block; font-size: 12px; }
+.chip { font-family: var(--font-body); font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; background: var(--bg); color: var(--muted); white-space: nowrap; }
+.chip.alerta { background: var(--stop-soft); color: var(--stop); }
+.chip.aviso2 { background: var(--warn-soft); color: var(--ink); }
+.chip.info { background: var(--go-soft); color: var(--ink); }
+.dia-detalle { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.dia-detalle .acciones { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.dia-detalle .acciones .campo { flex: 1 1 160px; }
+.motivo { font-size: 12px; color: var(--muted); }
+.total-mes { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.total-mes b { color: var(--ink); font-family: var(--font-mono); font-weight: 500; }
+
+.form { display: flex; flex-direction: column; gap: 12px; }
+.checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.checks label { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; background: var(--panel); }
+.interruptor { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--ink); }
+.interruptor input { width: 22px; height: 22px; accent-color: var(--go); }
+.nota-legal { font-size: 13px; color: var(--muted); }
+.nota-legal p { margin: 0; max-width: 65ch; }
+.fila-btn { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.fila-btn.izq { justify-content: flex-start; }
+
+.modal { position: fixed; inset: 0; z-index: 20; background: rgba(10,14,16,.55); display: flex; align-items: flex-end; justify-content: center; padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal .tarjeta { width: 100%; max-width: 520px; max-height: 90%; overflow: auto; }
+.error { color: var(--stop); font-size: 13px; margin: 0; }
+
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(20px); opacity: 0; background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 8px; font-weight: 500; transition: opacity .2s, transform .2s; z-index: 30; max-width: calc(100% - 32px); text-align: center; pointer-events: none; }
+.toast.ver { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.err { background: var(--stop); color: #fff; }
+
+@media (max-width: 380px) {
+  .pulsador .cap { width: 70px; height: 70px; border-width: 6px; }
+  .resumen, .campos { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="marca">Tarjeta de fichaje</div>
+    <nav class="tabs" role="tablist">
+      <button id="t-hoy" role="tab" aria-selected="true" data-v="hoy">Hoy</button>
+      <button id="t-registro" role="tab" aria-selected="false" data-v="registro">Registro</button>
+      <button id="t-ajustes" role="tab" aria-selected="false" data-v="ajustes">Ajustes</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="aviso" id="avisoInstalar" hidden>
+      <p>Para usarla como app: toca Compartir y luego «Añadir a la pantalla de inicio». Ficha siempre desde el icono, porque Safari y la app guardan los datos por separado.</p>
+      <button class="mini" id="cerrarInstalar">Entendido</button>
+    </div>
+    <div class="aviso" id="avisoCopia" hidden>
+      <p id="avisoCopiaTxt"></p>
+      <button class="mini" id="bCopiaAviso">Hacer copia</button>
+    </div>
+    <div class="aviso" id="aviso" hidden><p id="avisoTxt"></p></div>
+
+    <section class="vista" id="v-hoy">
+      <div class="reloj-panel">
+        <div class="fecha" id="fechaHoy"></div>
+        <div class="reloj" id="reloj">--:--:--</div>
+        <div class="estado"><span class="piloto" id="piloto"></span><span id="estadoTxt">Fuera de jornada</span></div>
+        <div class="verif" id="verif">Comprobando la hora con el servidor</div>
+      </div>
+
+      <div class="botonera">
+        <button class="pulsador go" id="bEntrada" disabled><span class="cap"></span><span class="lbl">Entrada</span></button>
+        <button class="pulsador warn" id="bPausa" disabled><span class="cap"></span><span class="lbl" id="lblPausa">Pausa</span></button>
+        <button class="pulsador stop" id="bSalida" disabled><span class="cap"></span><span class="lbl">Salida</span></button>
+      </div>
+      <p class="norma">Colores según IEC 60073: verde marcha, amarillo atención, rojo paro.</p>
+
+      <div class="campos">
+        <label class="campo">Lugar u obra
+          <input id="lugar" list="lugares" autocomplete="off" placeholder="Ej.: Nave Polígono Sur">
+        </label>
+        <label class="campo">Nota (opcional)
+          <input id="nota" autocomplete="off" placeholder="Ej.: montaje armario CCM">
+        </label>
+        <datalist id="lugares"></datalist>
+      </div>
+
+      <section class="tarjeta">
+        <div class="cab"><h2>Hoy</h2><small id="jornadaTxt">Jornada 8:00</small></div>
+        <div class="kpis">
+          <div class="kpi"><span>Trabajado</span><b id="kTrab">0:00</b></div>
+          <div class="kpi"><span>Pausas</span><b id="kPaus">0:00</b></div>
+          <div class="kpi"><span id="kFinLbl">Salida prevista</span><b id="kFin">--:--</b></div>
+        </div>
+        <div class="barra" id="barra"><i></i></div>
+        <ol class="fichas" id="listaHoy"></ol>
+      </section>
+
+      <div class="resumen">
+        <section class="tarjeta">
+          <div class="cab"><h2>Semana</h2></div>
+          <div class="cifra" id="sTrab">0:00 <small>/ 40:00</small></div>
+          <div class="semana" id="sBarras"></div>
+          <div class="linea"><span>Saldo (incluye hoy)</span><b id="sSaldo">0:00</b></div>
+        </section>
+        <section class="tarjeta">
+          <div class="cab"><h2>Mes</h2></div>
+          <div class="cifra" id="mTrab">0:00 <small>/ 0:00</small></div>
+          <div class="linea"><span>Horas extra</span><b id="mExtra">0:00</b></div>
+          <div class="linea"><span>Saldo (incluye hoy)</span><b id="mSaldo">0:00</b></div>
+          <div class="linea"><span>Días con incidencias</span><b id="mInc">0</b></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="vista" id="v-registro" hidden>
+      <div class="herramientas">
+        <label class="campo">Mes
+          <input type="month" id="mes">
+        </label>
+        <button class="btn" id="bExport">Exportar a Excel</button>
+      </div>
+      <div class="total-mes" id="totalMes"></div>
+      <ul class="dias" id="listaDias"></ul>
+    </section>
+
+    <section class="vista" id="v-ajustes" hidden>
+      <section class="tarjeta">
+        <h2>Datos del registro</h2>
+        <form class="form" id="fAjustes">
+          <label class="campo">Nombre del trabajador
+            <input id="aNombre" autocomplete="name">
+          </label>
+          <label class="campo">Empresa
+            <input id="aEmpresa" autocomplete="organization">
+          </label>
+          <label class="campo">Jornada diaria (horas)
+            <input id="aJornada" type="number" min="1" max="12" step="0.25" inputmode="decimal">
+          </label>
+          <div class="campo">Días laborables
+            <div class="checks" id="aDias"></div>
+          </div>
+          <label class="interruptor"><input type="checkbox" id="aGps"> Guardar la ubicación GPS al fichar</label>
+          <div class="fila-btn"><button class="btn" type="submit">Guardar ajustes</button></div>
+        </form>
+      </section>
+
+      <section class="tarjeta">
+        <h2>Copia de seguridad</h2>
+        <p class="vacio" id="ultimaCopiaTxt">Todavía no has hecho ninguna copia.</p>
+        <div class="fila-btn izq">
+          <button class="btn" id="bCopia">Guardar copia en Archivos</button>
+          <button class="btn sec" id="bRestaurar">Restaurar copia</button>
+          <input type="file" id="fRestaurar" accept=".json,application/json" hidden>
+        </div>
+        <p class="vacio">Guarda la copia en iCloud Drive. Si borras la app o cambias de iPhone, la restauras desde aquí y no pierdes nada.</p>
+      </section>
+
+      <section class="tarjeta nota-legal">
+        <h2>Cómo guarda los datos</h2>
+        <p>Los fichajes se guardan en este iPhone, dentro de la app. No salen del teléfono salvo en las copias y los Excel que tú exportas.</p>
+        <p>Cada fichaje guarda la hora del servidor. Sin conexión, guarda la hora del móvil y la marca como «hora no verificada».</p>
+        <p>Nada se borra. Una corrección o anulación crea un registro nuevo con su motivo y deja visible el original tachado.</p>
+        <p>Este registro es tuyo y sirve como prueba de tus horas. El registro oficial de jornada (art. 34.9 del Estatuto de los Trabajadores) es obligación de tu empresa, que debe conservarlo 4 años.</p>
+      </section>
+    </section>
+  </div>
+</main>
+
+<div class="modal" id="modal" hidden>
+  <section class="tarjeta" role="dialog" aria-modal="true" aria-labelledby="mTitulo">
+    <h2 id="mTitulo">Corregir fichaje</h2>
+    <form class="form" id="fModal">
+      <p class="motivo" id="mOriginal"></p>
+      <div class="campos">
+        <label class="campo" id="mTipoCampo">Tipo
+          <select id="mTipo">
+            <option value="entrada">Entrada</option>
+            <option value="pausa">Pausa</option>
+            <option value="reanudar">Reanudar</option>
+            <option value="salida">Salida</option>
+          </select>
+        </label>
+        <label class="campo" id="mHoraCampo">Hora
+          <input type="time" id="mHora" step="60">
+        </label>
+      </div>
+      <label class="campo" id="mLugarCampo">Lugar u obra
+        <input id="mLugar" list="lugares" autocomplete="off">
+      </label>
+      <label class="campo">Motivo (obligatorio)
+        <input id="mMotivo" autocomplete="off" placeholder="Ej.: olvidé fichar la salida">
+      </label>
+      <p class="error" id="mError" hidden></p>
+      <div class="fila-btn">
+        <button class="btn sec" type="button" id="mCancelar">Cancelar</button>
+        <button class="btn" type="submit" id="mGuardar">Guardar corrección</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2, '0');
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fromKey = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+const hm = ms => { const neg = ms < 0; const m = Math.round(Math.abs(ms) / 60000); return (neg ? '-' : '') + Math.floor(m / 60) + ':' + pad(m % 60); };
+const hmSigno = ms => (ms > 0 ? '+' : '') + hm(ms);
+const hora = ts => new Date(ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+const horas = ms => Math.round(ms / 36000) / 100;
+const rid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clon = o => JSON.parse(JSON.stringify(o));
+
+const TIPOS = { entrada: 'Entrada', pausa: 'Pausa', reanudar: 'Reanudar', salida: 'Salida', anula: 'Anulación' };
+const NOMBRE_FICHAJE = { entrada: 'entrada', pausa: 'pausa', reanudar: 'reanudación', salida: 'salida' };
+const TIPOS_DIA = { laborable: 'Laborable', festivo: 'Festivo', vacaciones: 'Vacaciones', baja: 'Baja médica', permiso: 'Permiso retribuido' };
+const DIAS_CORTOS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+const TOLERANCIA = 15 * 60000;
+const DIAS_AVISO_COPIA = 7;
+
+let listo = false, ocupado = false;
+let dias = new Map();
+let ajustes = { nombre: '', empresa: '', jornadaMin: 480, laborables: [1, 2, 3, 4, 5], gps: true };
+let ultimaCopia = null;
+let desfase = null;
+let diaAbierto = null;
+let modalCtx = null;
+
+/* ---------- Almacenamiento en el iPhone (IndexedDB) ---------- */
+let idb = null;
+function abrirBD() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('fichaje', 1);
+    r.onupgradeneeded = () => {
+      r.result.createObjectStore('dias', { keyPath: 'fecha' });
+      r.result.createObjectStore('kv');
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function tx(store, modo, fn) {
+  return new Promise((res, rej) => {
+    const t = idb.transaction(store, modo);
+    const out = fn(t.objectStore(store));
+    t.oncomplete = () => res(out && 'result' in out ? out.result : undefined);
+    t.onerror = () => rej(t.error);
+    t.onabort = () => rej(t.error);
+  });
+}
+const bdTodos = () => tx('dias', 'readonly', s => s.getAll());
+const bdGuardarDia = d => tx('dias', 'readwrite', s => s.put(d));
+const bdLeer = k => tx('kv', 'readonly', s => s.get(k));
+const bdEscribir = (k, v) => tx('kv', 'readwrite', s => s.put(v, k));
+
+/* ---------- Hora fiable ---------- */
+async function horaServidor() {
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 4000);
+    const t0 = Date.now();
+    const r = await fetch('hora.txt?t=' + t0, { cache: 'no-store', signal: ctrl.signal });
+    const t1 = Date.now();
+    clearTimeout(to);
+    const d = r.headers.get('Date');
+    if (!d) return null;
+    const srv = Date.parse(d) + Number(r.headers.get('Age') || 0) * 1000;
+    if (isNaN(srv)) return null;
+    return srv - Math.round((t0 + t1) / 2);
+  } catch { return null; }
+}
+const fiable = () => desfase !== null && Math.abs(desfase) <= TOLERANCIA;
+const ahora = () => Date.now() + (fiable() ? desfase : 0);
+
+async function horaFichaje() {
+  const off = await horaServidor();
+  if (off !== null) desfase = off;
+  pintarVerif();
+  const disp = Date.now();
+  if (off !== null && Math.abs(off) <= TOLERANCIA) return { ts: disp + off, fuente: 'servidor', desfase: Math.round(off / 1000) };
+  return { ts: disp, fuente: 'dispositivo', desfase: off === null ? null : Math.round(off / 1000) };
+}
+
+function pintarVerif() {
+  const v = $('#verif');
+  if (desfase === null) { v.className = 'verif ko'; v.textContent = 'Sin conexión con el servidor. Se usará la hora del móvil.'; }
+  else if (fiable()) { v.className = 'verif ok'; v.textContent = 'Hora verificada con el servidor'; }
+  else { v.className = 'verif ko'; v.textContent = `La hora del móvil difiere ${Math.round(Math.abs(desfase) / 60000)} min del servidor. Revisa la hora del iPhone.`; }
+}
+
+/* ---------- Ubicación GPS ---------- */
+function ubicacion() {
+  return new Promise(res => {
+    if (!navigator.geolocation) return res({ error: 'GPS no disponible' });
+    const to = setTimeout(() => res({ error: 'El GPS no ha respondido' }), 10000);
+    navigator.geolocation.getCurrentPosition(
+      p => { clearTimeout(to); res({ lat: +p.coords.latitude.toFixed(6), lon: +p.coords.longitude.toFixed(6), prec: Math.round(p.coords.accuracy) }); },
+      e => { clearTimeout(to); res({ error: e.code === 1 ? 'Permiso de ubicación denegado' : 'Sin señal GPS' }); },
+      { enableHighAccuracy: true, timeout: 9000, maximumAge: 30000 }
+    );
+  });
+}
+function gpsHtml(e) {
+  if (e.gps?.lat != null) return ` · <a href="https://maps.apple.com/?ll=${e.gps.lat},${e.gps.lon}&q=Fichaje" target="_blank" rel="noopener">GPS ±${e.gps.prec} m</a>`;
+  if (e.gps?.error) return ` · ${esc(e.gps.error)}`;
+  return '';
+}
+
+/* ---------- Cálculo ---------- */
+function vigentes(dia) {
+  const evs = dia?.eventos || [];
+  const sust = new Set(evs.filter(e => e.corrige).map(e => e.corrige));
+  return evs.filter(e => !sust.has(e.id) && e.tipo !== 'anula').sort((a, b) => a.ts - b.ts);
+}
+function teorico(fecha, dia) {
+  if (dia?.tipo && dia.tipo !== 'laborable') return 0;
+  return ajustes.laborables.includes(fromKey(fecha).getDay()) ? ajustes.jornadaMin * 60000 : 0;
+}
+function calcDia(fecha, now) {
+  const dia = dias.get(fecha);
+  const esHoy = fecha === keyOf(new Date(now));
+  const ev = vigentes(dia);
+  let trab = 0, paus = 0, est = 'fuera', ini = 0, ip = 0, inc = false;
+  for (const e of ev) {
+    if (e.tipo === 'entrada') { if (est === 'fuera') { est = 'trabajando'; ini = e.ts; } else inc = true; }
+    else if (e.tipo === 'pausa') { if (est === 'trabajando') { trab += e.ts - ini; ip = e.ts; est = 'pausa'; } else inc = true; }
+    else if (e.tipo === 'reanudar') { if (est === 'pausa') { paus += e.ts - ip; ini = e.ts; est = 'trabajando'; } else inc = true; }
+    else if (e.tipo === 'salida') {
+      if (est === 'trabajando') trab += e.ts - ini;
+      else if (est === 'pausa') paus += e.ts - ip;
+      else { inc = true; continue; }
+      est = 'fuera';
+    }
+  }
+  const abierta = est !== 'fuera';
+  if (abierta && esHoy) { if (est === 'trabajando') trab += now - ini; else paus += now - ip; }
+  const todos = dia?.eventos || [];
+  return {
+    dia, ev, trab, paus, inc,
+    est: esHoy ? est : 'fuera',
+    sinSalida: abierta && !esHoy,
+    teor: teorico(fecha, dia),
+    primera: ev.find(e => e.tipo === 'entrada')?.ts,
+    ultima: [...ev].reverse().find(e => e.tipo === 'salida')?.ts,
+    noVerif: ev.some(e => e.fuente === 'dispositivo'),
+    corregido: todos.some(e => e.corrige || e.manual),
+    lugares: [...new Set(ev.map(e => e.lugar).filter(Boolean))]
+  };
+}
+function incidencias(c, fecha, hoyK) {
+  const out = [];
+  if (c.sinSalida) out.push(['Sin salida', 'alerta']);
+  if (c.inc) out.push(['Fichajes incoherentes', 'alerta']);
+  if (!c.ev.length && c.teor > 0 && fecha < hoyK) out.push(['Sin fichajes', 'alerta']);
+  if (c.noVerif) out.push(['Hora no verificada', 'aviso2']);
+  if (c.corregido) out.push(['Corregido', 'aviso2']);
+  return out;
+}
+function rango(desde, hasta) {
+  const out = []; const d = new Date(desde);
+  while (d <= hasta) { out.push(keyOf(d)); d.setDate(d.getDate() + 1); }
+  return out;
+}
+
+/* ---------- Pintar HOY ---------- */
+let firmaHoy = '';
+function pintarHoy() {
+  const now = ahora();
+  const d = new Date(now);
+  const hoyK = keyOf(d);
+  $('#reloj').textContent = d.toLocaleTimeString('es-ES');
+  const fTxt = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  $('#fechaHoy').textContent = fTxt.charAt(0).toUpperCase() + fTxt.slice(1);
+  const c = calcDia(hoyK, now);
+
+  $('#piloto').className = 'piloto ' + c.est;
+  $('#estadoTxt').textContent = ocupado ? 'Registrando' : c.est === 'trabajando' ? 'Trabajando' : c.est === 'pausa' ? 'En pausa' : 'Fuera de jornada';
+  const activo = listo && !ocupado;
+  $('#bEntrada').disabled = !activo || c.est !== 'fuera';
+  $('#bPausa').disabled = !activo || c.est === 'fuera';
+  $('#bSalida').disabled = !activo || c.est === 'fuera';
+  $('#lblPausa').textContent = c.est === 'pausa' ? 'Reanudar' : 'Pausa';
+
+  $('#jornadaTxt').textContent = c.teor ? 'Jornada ' + hm(c.teor) : (c.dia?.tipo && c.dia.tipo !== 'laborable' ? TIPOS_DIA[c.dia.tipo] : 'Día no laborable');
+  $('#kTrab').textContent = hm(c.trab);
+  $('#kPaus').textContent = hm(c.paus);
+  if (c.est === 'trabajando' && c.teor > c.trab) { $('#kFinLbl').textContent = 'Salida prevista'; $('#kFin').textContent = hora(now + c.teor - c.trab); }
+  else if (c.teor && c.trab >= c.teor) { $('#kFinLbl').textContent = 'Horas extra'; $('#kFin').textContent = hm(c.trab - c.teor); }
+  else { $('#kFinLbl').textContent = 'Pendiente'; $('#kFin').textContent = hm(Math.max(0, c.teor - c.trab)); }
+  const barra = $('#barra');
+  barra.classList.toggle('extra', c.teor > 0 && c.trab > c.teor);
+  barra.firstElementChild.style.width = (c.teor ? Math.min(100, c.trab / c.teor * 100) : (c.trab ? 100 : 0)) + '%';
+
+  const firma = JSON.stringify(c.dia?.eventos || []);
+  if (firma !== firmaHoy) {
+    firmaHoy = firma;
+    $('#listaHoy').innerHTML = c.ev.length ? c.ev.map(e => `
+      <li class="ficha">
+        <time>${hora(e.ts)}</time>
+        <div class="t"><span class="tipo-${e.tipo}">${TIPOS[e.tipo]}</span><small>${esc([e.lugar, e.nota].filter(Boolean).join(' · '))}${gpsHtml(e)}${e.fuente === 'dispositivo' ? ' · hora no verificada' : ''}${e.manual ? ' · corregido' : ''}</small></div>
+        <button class="mini" data-corregir="${e.id}" data-fecha="${hoyK}">Corregir</button>
+      </li>`).join('') : '<li class="vacio">Aún no has fichado hoy. Pulsa ENTRADA al empezar.</li>';
+  }
+
+  // Semana
+  const lunes = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7));
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+  let sT = 0, sTeorTot = 0, sTeorHoy = 0, barras = '';
+  for (const k of rango(lunes, domingo)) {
+    const ci = calcDia(k, now); sT += ci.trab; sTeorTot += ci.teor; if (k <= hoyK) sTeorHoy += ci.teor;
+    const alto = Math.min(100, ci.trab / (10 * 3600000) * 100);
+    barras += `<div class="${k === hoyK ? 'hoy' : ''}"><i style="height:${alto}%"></i>${DIAS_CORTOS[fromKey(k).getDay()]}</div>`;
+  }
+  $('#sTrab').innerHTML = `${hm(sT)} <small>/ ${hm(sTeorTot)}</small>`;
+  $('#sBarras').innerHTML = barras;
+  pintarSaldo($('#sSaldo'), sT - sTeorHoy);
+
+  // Mes
+  let mT = 0, mTeor = 0, mExtra = 0, mInc = 0;
+  for (const k of rango(new Date(d.getFullYear(), d.getMonth(), 1), d)) {
+    const ci = calcDia(k, now); mT += ci.trab; mTeor += ci.teor;
+    if (k < hoyK || ci.est === 'fuera') mExtra += Math.max(0, ci.trab - ci.teor);
+    if (incidencias(ci, k, hoyK).some(i => i[1] === 'alerta')) mInc++;
+  }
+  $('#mTrab').innerHTML = `${hm(mT)} <small>/ ${hm(mTeor)}</small>`;
+  $('#mExtra').textContent = hm(mExtra);
+  pintarSaldo($('#mSaldo'), mT - mTeor);
+  $('#mInc').textContent = mInc;
+}
+function pintarSaldo(el, ms) { el.textContent = hmSigno(ms); el.className = ms > 0 ? 'pos' : ms < 0 ? 'neg' : ''; }
+
+/* ---------- Pintar REGISTRO ---------- */
+function pintarRegistro() {
+  const mes = $('#mes').value; if (!mes) return;
+  const now = ahora(); const hoyK = keyOf(new Date(now));
+  const [y, m] = mes.split('-').map(Number);
+  const fin = new Date(y, m, 0);
+  const hasta = fin < new Date(now) ? fin : new Date(now);
+  const claves = new Date(y, m - 1, 1) > new Date(now) ? [] : rango(new Date(y, m - 1, 1), hasta).reverse();
+  let tT = 0, tTeor = 0, tExtra = 0;
+  const html = claves.map(k => {
+    const c = calcDia(k, now); tT += c.trab; tTeor += c.teor; tExtra += Math.max(0, c.trab - c.teor);
+    const inc = incidencias(c, k, hoyK);
+    const tipoDia = c.dia?.tipo && c.dia.tipo !== 'laborable' ? `<span class="chip info">${TIPOS_DIA[c.dia.tipo]}</span>` : '';
+    const horasTxt = c.ev.length ? `${c.primera ? hora(c.primera) : '--:--'} a ${c.ultima ? hora(c.ultima) : '--:--'}` : (c.teor ? '' : '<span class="chip">No laborable</span>');
+    const dif = c.trab - c.teor;
+    const abierto = diaAbierto === k;
+    return `<li class="dia">
+      <button class="dia-fila" data-dia="${k}" aria-expanded="${abierto}">
+        <span class="d">${fromKey(k).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })}</span>
+        <span class="h">${horasTxt}${tipoDia}${inc.map(i => `<span class="chip ${i[1]}">${i[0]}</span>`).join('')}</span>
+        <span class="r">${hm(c.trab)}${c.teor || c.trab ? `<small class="${dif > 0 ? 'pos' : dif < 0 ? 'neg' : ''}">${hmSigno(dif)}</small>` : ''}</span>
+      </button>
+      ${abierto ? detalleDia(k, c) : ''}
+    </li>`;
+  }).join('');
+  $('#listaDias').innerHTML = html || '<li class="dia"><p class="vacio" style="padding:14px">No hay días en este mes todavía.</p></li>';
+  $('#totalMes').innerHTML = `<span>Trabajado <b>${hm(tT)}</b></span><span>Teórico <b>${hm(tTeor)}</b></span><span>Extra <b>${hm(tExtra)}</b></span>`;
+}
+function detalleDia(k, c) {
+  const todos = [...(c.dia?.eventos || [])].sort((a, b) => a.ts - b.ts || a.registrado - b.registrado);
+  const sust = new Map(todos.filter(e => e.corrige).map(e => [e.corrige, e]));
+  const filas = todos.map(e => {
+    const sustituto = sust.get(e.id);
+    const tachada = !!sustituto || e.tipo === 'anula';
+    const estado = sustituto ? (sustituto.tipo === 'anula' ? 'Anulado' : 'Sustituido') : '';
+    const meta = esc([e.lugar, e.nota, e.fuente === 'dispositivo' ? 'hora no verificada' : '', estado].filter(Boolean).join(' · ')) + gpsHtml(e);
+    const mot = e.motivo ? `<span class="motivo">Motivo: ${esc(e.motivo)} · registrado ${new Date(e.registrado).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</span>` : '';
+    const btns = tachada ? '' : `<div style="display:flex;gap:6px"><button class="mini" data-corregir="${e.id}" data-fecha="${k}">Corregir</button><button class="mini" data-anular="${e.id}" data-fecha="${k}">Anular</button></div>`;
+    return `<li class="ficha ${tachada ? 'tachada' : ''}"><time>${hora(e.ts)}</time><div class="t"><span class="tipo-${e.tipo}">${TIPOS[e.tipo]}</span><small>${meta}</small>${mot}</div>${btns}</li>`;
+  }).join('');
+  const tipo = c.dia?.tipo || 'laborable';
+  return `<div class="dia-detalle">
+    <ol class="fichas">${filas || '<li class="vacio">Sin fichajes este día.</li>'}</ol>
+    <div class="acciones">
+      <label class="campo">Tipo de día
+        <select data-tipodia="${k}" id="td-${k}">${Object.entries(TIPOS_DIA).map(([v, l]) => `<option value="${v}" ${v === tipo ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      </label>
+      <button class="btn sec" data-anadir="${k}">Añadir fichaje olvidado</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- Guardar ---------- */
+let cola = Promise.resolve();
+function enCola(fn) { const p = cola.then(fn); cola = p.catch(() => {}); return p; }
+function guardarDia(fecha, cambiar) {
+  return enCola(async () => {
+    const cur = dias.has(fecha) ? clon(dias.get(fecha)) : { fecha, tipo: 'laborable', eventos: [], cambios: [] };
+    cur.eventos = cur.eventos || []; cur.cambios = cur.cambios || [];
+    cambiar(cur);
+    await bdGuardarDia(cur);
+    dias.set(fecha, cur);
+    pintarTodo();
+  });
+}
+const msgError = () => 'No se ha podido guardar en el iPhone. Comprueba que queda espacio libre y vuelve a pulsar.';
+
+let persistida = false;
+async function pedirPersistencia() {
+  if (persistida || !navigator.storage?.persist) return;
+  try { persistida = await navigator.storage.persist(); } catch {}
+}
+
+async function fichar(tipo) {
+  if (!listo || ocupado) return;
+  ocupado = true; pintarHoy();
+  try {
+    const [t, gps] = await Promise.all([horaFichaje(), ajustes.gps ? ubicacion() : Promise.resolve(null)]);
+    const fecha = keyOf(new Date(t.ts));
+    const lugar = $('#lugar').value.trim();
+    const ev = { id: rid(), tipo, ts: t.ts, registrado: t.ts, fuente: t.fuente, desfase: t.desfase, lugar, nota: $('#nota').value.trim(), gps };
+    await guardarDia(fecha, d => d.eventos.push(ev));
+    $('#nota').value = '';
+    try { localStorage.setItem('fichaje-lugar', lugar); } catch {}
+    toast(`Fichaje de ${NOMBRE_FICHAJE[tipo]} guardado a las ${hora(t.ts)}`);
+    pedirPersistencia();
+  } catch (e) { toast(msgError(e), true); }
+  finally { ocupado = false; pintarHoy(); }
+}
+
+/* ---------- Modal de corrección ---------- */
+function buscarEvento(fecha, id) { return (dias.get(fecha)?.eventos || []).find(e => e.id === id); }
+function abrirModal(modo, fecha, id) {
+  const ev = id ? buscarEvento(fecha, id) : null;
+  modalCtx = { modo, fecha, ev };
+  const fechaTxt = fromKey(fecha).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('#mTitulo').textContent = modo === 'corregir' ? 'Corregir fichaje' : modo === 'anular' ? 'Anular fichaje' : 'Añadir fichaje olvidado';
+  $('#mOriginal').textContent = ev ? `Original: ${TIPOS[ev.tipo]} a las ${hora(ev.ts)}, ${fechaTxt}. Quedará visible y tachado.` : `Día: ${fechaTxt}.`;
+  const conCampos = modo !== 'anular';
+  $('#mTipoCampo').hidden = !conCampos; $('#mHoraCampo').hidden = !conCampos; $('#mLugarCampo').hidden = !conCampos;
+  $('#mTipo').value = ev?.tipo || 'salida';
+  $('#mHora').value = ev ? hora(ev.ts) : '';
+  $('#mLugar').value = ev?.lugar || $('#lugar').value;
+  $('#mMotivo').value = '';
+  $('#mError').hidden = true;
+  $('#mGuardar').textContent = modo === 'anular' ? 'Anular fichaje' : modo === 'corregir' ? 'Guardar corrección' : 'Añadir fichaje';
+  $('#modal').hidden = false;
+  setTimeout(() => (conCampos ? $('#mHora') : $('#mMotivo')).focus(), 50);
+}
+function cerrarModal() { $('#modal').hidden = true; modalCtx = null; }
+function errorModal(t) { const e = $('#mError'); e.textContent = t; e.hidden = false; }
+
+$('#fModal').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  if (!modalCtx || !listo) return;
+  const { modo, fecha, ev: orig } = modalCtx;
+  const motivo = $('#mMotivo').value.trim();
+  if (motivo.length < 3) return errorModal('Escribe el motivo de la corrección.');
+  const ahoraTs = ahora();
+  let nuevo;
+  if (modo === 'anular') {
+    nuevo = { id: rid(), tipo: 'anula', ts: orig.ts, registrado: ahoraTs, fuente: 'manual', manual: true, motivo, corrige: orig.id };
+  } else {
+    const hv = $('#mHora').value;
+    if (!hv) return errorModal('Indica la hora.');
+    const [h, mi] = hv.split(':').map(Number);
+    const f = fromKey(fecha); f.setHours(h, mi, 0, 0);
+    if (f.getTime() > ahoraTs) return errorModal('La hora no puede ser posterior a ahora.');
+    nuevo = { id: rid(), tipo: $('#mTipo').value, ts: f.getTime(), registrado: ahoraTs, fuente: 'manual', manual: true, motivo, lugar: $('#mLugar').value.trim(), nota: '' };
+    if (modo === 'corregir') nuevo.corrige = orig.id;
+  }
+  $('#mGuardar').disabled = true;
+  try {
+    await guardarDia(fecha, d => d.eventos.push(nuevo));
+    cerrarModal();
+    toast(modo === 'anular' ? 'Fichaje anulado. El original sigue visible.' : 'Corrección guardada. El original sigue visible.');
+  } catch (e) { errorModal(msgError(e)); }
+  finally { $('#mGuardar').disabled = false; }
+});
+$('#mCancelar').addEventListener('click', cerrarModal);
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') cerrarModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) cerrarModal(); });
+
+/* ---------- Entregar archivos (Excel y copias) ---------- */
+async function entregarArchivo(nombre, blob, tipoMime) {
+  const file = new File([blob], nombre, { type: tipoMime });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: nombre }); return true; }
+    catch (e) { if (e.name === 'AbortError') return false; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 20000);
+  return true;
+}
+
+let cargaXlsx = null;
+function cargarXlsx() {
+  if (window.XLSX) return Promise.resolve();
+  if (!cargaXlsx) cargaXlsx = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'xlsx.full.min.js';
+    s.onload = res; s.onerror = () => { cargaXlsx = null; rej(); };
+    document.head.appendChild(s);
+  });
+  return cargaXlsx;
+}
+
+/* ---------- Exportar a Excel ---------- */
+async function exportar() {
+  const mes = $('#mes').value;
+  if (!mes) return toast('Elige un mes.', true);
+  const b = $('#bExport'); b.disabled = true;
+  try {
+    await cargarXlsx();
+    const now = ahora(); const hoyK = keyOf(new Date(now));
+    const [y, m] = mes.split('-').map(Number);
+    const fin = new Date(y, m, 0);
+    const claves = rango(new Date(y, m - 1, 1), fin < new Date(now) ? fin : new Date(now));
+    const periodo = new Date(y, m - 1, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const fFecha = k => fromKey(k).toLocaleDateString('es-ES');
+    const cabecera = [
+      ['Registro de jornada'],
+      ['Trabajador', ajustes.nombre || ''],
+      ['Empresa', ajustes.empresa || ''],
+      ['Periodo', periodo],
+      ['Jornada teórica diaria', hm(ajustes.jornadaMin * 60000)],
+      ['Generado', new Date(now).toLocaleString('es-ES')],
+      []
+    ];
+    const res = [...cabecera, ['Fecha', 'Día', 'Tipo de día', 'Primera entrada', 'Última salida', 'Pausas (h:mm)', 'Trabajado (h:mm)', 'Trabajado (horas)', 'Teórico (horas)', 'Diferencia (horas)', 'Lugar u obra', 'Incidencias']];
+    const fich = [...cabecera, ['Fecha', 'Hora', 'Tipo', 'Estado', 'Lugar u obra', 'Nota', 'Latitud', 'Longitud', 'Precisión GPS (m)', 'Origen de la hora', 'Desfase del móvil (s)', 'Registrado el', 'Motivo', 'Sustituye a']];
+    let tT = 0, tTeor = 0, tP = 0;
+    for (const k of claves) {
+      const c = calcDia(k, now);
+      tT += c.trab; tTeor += c.teor; tP += c.paus;
+      res.push([fFecha(k), fromKey(k).toLocaleDateString('es-ES', { weekday: 'long' }), TIPOS_DIA[c.dia?.tipo || 'laborable'],
+        c.primera ? hora(c.primera) : '', c.ultima ? hora(c.ultima) : '', hm(c.paus), hm(c.trab), horas(c.trab), horas(c.teor), horas(c.trab - c.teor),
+        c.lugares.join(', '), incidencias(c, k, hoyK).map(i => i[0]).join(', ')]);
+      const todos = [...(c.dia?.eventos || [])].sort((a, b) => a.ts - b.ts);
+      const sust = new Map(todos.filter(e => e.corrige).map(e => [e.corrige, e]));
+      const porId = new Map(todos.map(e => [e.id, e]));
+      for (const e of todos) {
+        const s = sust.get(e.id);
+        const estado = e.tipo === 'anula' ? 'Anulación' : s ? (s.tipo === 'anula' ? 'Anulado' : 'Sustituido por corrección') : 'Vigente';
+        const o = e.corrige ? porId.get(e.corrige) : null;
+        fich.push([fFecha(k), new Date(e.ts).toLocaleTimeString('es-ES'), TIPOS[e.tipo], estado, e.lugar || '', e.nota || '',
+          e.gps?.lat ?? '', e.gps?.lon ?? '', e.gps?.prec ?? (e.gps?.error || ''),
+          e.fuente === 'servidor' ? 'Servidor' : e.fuente === 'dispositivo' ? 'Móvil (no verificada)' : 'Manual',
+          e.desfase ?? '', new Date(e.registrado).toLocaleString('es-ES'), e.motivo || '', o ? `${TIPOS[o.tipo]} ${hora(o.ts)}` : '']);
+      }
+      for (const cb of (c.dia?.cambios || [])) {
+        fich.push([fFecha(k), '', 'Cambio de tipo de día', `${TIPOS_DIA[cb.de] || cb.de} a ${TIPOS_DIA[cb.a] || cb.a}`, '', '', '', '', '', 'Manual', '', new Date(cb.registrado).toLocaleString('es-ES'), '', '']);
+      }
+    }
+    res.push([], ['Totales', '', '', '', '', hm(tP), hm(tT), horas(tT), horas(tTeor), horas(tT - tTeor), '', '']);
+    const wb = XLSX.utils.book_new();
+    const ws1 = XLSX.utils.aoa_to_sheet(res);
+    ws1['!cols'] = [12, 11, 16, 14, 13, 13, 15, 15, 14, 16, 26, 30].map(w => ({ wch: w }));
+    const ws2 = XLSX.utils.aoa_to_sheet(fich);
+    ws2['!cols'] = [12, 10, 18, 24, 24, 26, 11, 11, 16, 20, 12, 20, 30, 16].map(w => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
+    XLSX.utils.book_append_sheet(wb, ws2, 'Fichajes');
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const nombre = (ajustes.nombre || 'trabajador').normalize('NFD').replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
+    const ok = await entregarArchivo(`Registro_jornada_${nombre}_${mes}.xlsx`, new Blob([buf]), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    if (ok) toast('Excel listo');
+  } catch { toast('No se ha podido generar el Excel. Comprueba la conexión la primera vez y vuelve a intentarlo.', true); }
+  finally { b.disabled = false; }
+}
+
+/* ---------- Copia de seguridad ---------- */
+async function hacerCopia() {
+  const datos = { app: 'fichaje', version: 1, exportado: new Date().toISOString(), ajustes, dias: [...dias.values()] };
+  const nombre = `Fichaje_copia_${keyOf(new Date())}.json`;
+  const ok = await entregarArchivo(nombre, new Blob([JSON.stringify(datos)], { type: 'application/json' }), 'application/json');
+  if (!ok) return;
+  ultimaCopia = Date.now();
+  try { await bdEscribir('ultimaCopia', ultimaCopia); } catch {}
+  pintarCopia();
+  toast('Copia preparada. Guárdala en iCloud Drive.');
+}
+async function restaurar(file) {
+  try {
+    const datos = JSON.parse(await file.text());
+    if (datos?.app !== 'fichaje' || !Array.isArray(datos.dias)) throw new Error('formato');
+    let n = 0;
+    for (const d of datos.dias) {
+      if (!d?.fecha || !Array.isArray(d.eventos)) continue;
+      const cur = dias.get(d.fecha);
+      let res = d;
+      if (cur) {
+        const ids = new Set(cur.eventos.map(e => e.id));
+        res = clon(cur);
+        res.eventos.push(...d.eventos.filter(e => !ids.has(e.id)));
+        const firmas = new Set((cur.cambios || []).map(x => x.registrado + x.a));
+        res.cambios = [...(cur.cambios || []), ...(d.cambios || []).filter(x => !firmas.has(x.registrado + x.a))];
+        if ((!cur.tipo || cur.tipo === 'laborable') && d.tipo) res.tipo = d.tipo;
+      }
+      await bdGuardarDia(res);
+      dias.set(d.fecha, res);
+      n++;
+    }
+    if (datos.ajustes && !ajustes.nombre) { ajustes = { ...ajustes, ...datos.ajustes }; await bdEscribir('ajustes', ajustes); pintarAjustes(); }
+    pintarTodo();
+    toast(`Copia restaurada: ${n} días. No se ha perdido ningún fichaje.`);
+  } catch { toast('Ese archivo no es una copia de Fichaje.', true); }
+}
+function pintarCopia() {
+  const txt = $('#ultimaCopiaTxt');
+  const hayDatos = dias.size > 0;
+  if (ultimaCopia) txt.textContent = 'Última copia: ' + new Date(ultimaCopia).toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
+  const diasSin = ultimaCopia ? Math.floor((Date.now() - ultimaCopia) / 86400000) : null;
+  const avisar = hayDatos && (diasSin === null || diasSin >= DIAS_AVISO_COPIA);
+  $('#avisoCopia').hidden = !avisar;
+  if (avisar) $('#avisoCopiaTxt').textContent = diasSin === null ? 'Aún no has hecho ninguna copia de seguridad de tus fichajes.' : `Han pasado ${diasSin} días desde tu última copia de seguridad.`;
+}
+
+/* ---------- Ajustes ---------- */
+function pintarAjustes() {
+  $('#aNombre').value = ajustes.nombre || '';
+  $('#aEmpresa').value = ajustes.empresa || '';
+  $('#aJornada').value = ajustes.jornadaMin / 60;
+  $('#aGps').checked = !!ajustes.gps;
+  const orden = [1, 2, 3, 4, 5, 6, 0], nombres = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  $('#aDias').innerHTML = orden.map((d, i) => `<label><input type="checkbox" id="ad-${d}" value="${d}" ${ajustes.laborables.includes(d) ? 'checked' : ''}> ${nombres[i]}</label>`).join('');
+}
+$('#fAjustes').addEventListener('submit', async e => {
+  e.preventDefault();
+  const j = Number($('#aJornada').value);
+  if (!(j >= 1 && j <= 12)) return toast('La jornada debe estar entre 1 y 12 horas.', true);
+  const nuevo = {
+    nombre: $('#aNombre').value.trim(), empresa: $('#aEmpresa').value.trim(),
+    jornadaMin: Math.round(j * 60),
+    laborables: [...document.querySelectorAll('#aDias input:checked')].map(i => Number(i.value)),
+    gps: $('#aGps').checked
+  };
+  try { await enCola(() => bdEscribir('ajustes', nuevo)); ajustes = nuevo; pintarTodo(); toast('Ajustes guardados'); }
+  catch { toast(msgError(), true); }
+});
+
+/* ---------- Navegación y eventos ---------- */
+function verVista(v) {
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.v === v)));
+  ['hoy', 'registro', 'ajustes'].forEach(x => { $('#v-' + x).hidden = x !== v; });
+  if (v === 'registro') { pintarRegistro(); cargarXlsx().catch(() => {}); }
+  window.scrollTo(0, 0);
+}
+document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) verVista(b.dataset.v); });
+$('#bEntrada').addEventListener('click', () => fichar('entrada'));
+$('#bPausa').addEventListener('click', () => { const c = calcDia(keyOf(new Date(ahora())), ahora()); fichar(c.est === 'pausa' ? 'reanudar' : 'pausa'); });
+$('#bSalida').addEventListener('click', () => fichar('salida'));
+$('#mes').addEventListener('change', pintarRegistro);
+$('#bExport').addEventListener('click', exportar);
+$('#bCopia').addEventListener('click', hacerCopia);
+$('#bCopiaAviso').addEventListener('click', hacerCopia);
+$('#bRestaurar').addEventListener('click', () => $('#fRestaurar').click());
+$('#fRestaurar').addEventListener('change', e => { const f = e.target.files[0]; if (f) restaurar(f); e.target.value = ''; });
+$('#cerrarInstalar').addEventListener('click', () => { $('#avisoInstalar').hidden = true; try { localStorage.setItem('fichaje-instalar-visto', '1'); } catch {} });
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-corregir],[data-anular],[data-anadir],[data-dia]');
+  if (!t) return;
+  if (t.dataset.corregir) abrirModal('corregir', t.dataset.fecha, t.dataset.corregir);
+  else if (t.dataset.anular) abrirModal('anular', t.dataset.fecha, t.dataset.anular);
+  else if (t.dataset.anadir) abrirModal('anadir', t.dataset.anadir);
+  else if (t.dataset.dia) { diaAbierto = diaAbierto === t.dataset.dia ? null : t.dataset.dia; pintarRegistro(); }
+});
+document.addEventListener('change', async e => {
+  const s = e.target.closest('[data-tipodia]');
+  if (!s || !listo) return;
+  const fecha = s.dataset.tipodia, val = s.value;
+  try {
+    await guardarDia(fecha, d => { d.cambios.push({ registrado: ahora(), de: d.tipo || 'laborable', a: val }); d.tipo = val; });
+    toast(`Día marcado como ${TIPOS_DIA[val].toLowerCase()}`);
+  } catch { toast(msgError(), true); }
+});
+
+let toastT;
+function toast(txt, err) {
+  const t = $('#toast'); t.textContent = txt; t.className = 'toast ver' + (err ? ' err' : '');
+  clearTimeout(toastT); toastT = setTimeout(() => { t.className = 'toast' + (err ? ' err' : ''); }, 3200);
+}
+function aviso(txt) { $('#avisoTxt').textContent = txt; $('#aviso').hidden = !txt; }
+
+function pintarLugares() {
+  const set = new Set();
+  [...dias.values()].sort((a, b) => b.fecha.localeCompare(a.fecha)).forEach(d => (d.eventos || []).forEach(e => e.lugar && set.add(e.lugar)));
+  $('#lugares').innerHTML = [...set].slice(0, 15).map(l => `<option value="${esc(l)}"></option>`).join('');
+}
+function pintarTodo() {
+  firmaHoy = '';
+  pintarHoy();
+  if (!$('#v-registro').hidden) pintarRegistro();
+  pintarLugares();
+  pintarCopia();
+}
+
+/* ---------- Arranque ---------- */
+const enApp = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+let vistoInstalar = false;
+try { vistoInstalar = localStorage.getItem('fichaje-instalar-visto') === '1'; } catch {}
+$('#avisoInstalar').hidden = enApp || vistoInstalar;
+$('#mes').value = keyOf(new Date()).slice(0, 7);
+try { $('#lugar').value = localStorage.getItem('fichaje-lugar') || ''; } catch {}
+pintarAjustes();
+pintarHoy();
+setInterval(pintarHoy, 1000);
+setInterval(() => { if (!$('#v-registro').hidden && !diaAbierto) pintarRegistro(); }, 60000);
+horaServidor().then(off => { desfase = off; pintarVerif(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  horaServidor().then(off => { if (off !== null) desfase = off; pintarVerif(); });
+  pintarTodo();
+});
+
+(async () => {
+  try {
+    idb = await abrirBD();
+    const [todos, aj, uc] = await Promise.all([bdTodos(), bdLeer('ajustes'), bdLeer('ultimaCopia')]);
+    dias = new Map(todos.map(d => [d.fecha, d]));
+    if (aj) ajustes = { ...ajustes, ...aj };
+    ultimaCopia = uc || null;
+    listo = true;
+    pintarAjustes();
+    pintarTodo();
+  } catch {
+    aviso('No se puede guardar en este navegador. Abre la app desde Safari, sin modo privado.');
+  }
+})();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
