@@ -19,3 +19,7 @@ Los fichajes se guardan solo en el iPhone. Este repositorio contiene el código,
 ## Publicar cambios
 
 Al cambiar archivos, sube la constante `VERSION` de `sw.js` para que la app instalada descargue la versión nueva.
+
+## Versión conectada a Nexa Hub
+
+La carpeta `servidor/` contiene la versión multiempresa: API para SQL Server y app para iPhone y Android que envía los fichajes a Nexa Hub. Instrucciones en `servidor/README.md`. La app personal de esta raíz sigue igual.

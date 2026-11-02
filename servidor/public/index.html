@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fichaje Nexa Hub</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fichaje">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#F4F5F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1E2427" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+/* Una columna de móvil, como un panel de armario: reloj, obra, pulsadores y fichajes del día. */
+:root {
+  --bg: #E2E5E2; --panel: #F4F5F3; --ink: #1D2326; --muted: #586266; --line: #C4CAC6; --bezel: #9AA2A3;
+  --accent: #1F6CAD; --go: #2C8A46; --warn: #D49A00; --stop: #C3322B;
+  --go-soft: #DCEFE1; --warn-soft: #F7EBC8; --stop-soft: #F6DCDA;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", "Helvetica Neue", sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, "Roboto Mono", monospace;
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15191B; --panel: #1E2427; --ink: #E5E9E7; --muted: #98A2A6; --line: #313A3E; --bezel: #4A5458;
+    --accent: #5BA3E2; --go: #3DB061; --warn: #F0B62C; --stop: #E2574E;
+    --go-soft: #1C3324; --warn-soft: #3A3115; --stop-soft: #3E1F1D;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--panel); }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; -webkit-tap-highlight-color: transparent; padding-bottom: env(safe-area-inset-bottom, 0px); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 560px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; }
+.marca { display: flex; flex-direction: column; min-width: 0; }
+.marca b { font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.marca small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabs { display: flex; gap: 4px; flex: none; }
+.tabs button { border: 1px solid transparent; background: none; padding: 6px 8px; border-radius: 6px; font-weight: 500; color: var(--muted); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-color: var(--line); background: var(--bg); }
+main .wrap { display: flex; flex-direction: column; gap: 16px; padding-block: 16px 40px; }
+.vista { display: flex; flex-direction: column; gap: 16px; }
+.aviso { border: 1px solid var(--warn); background: var(--warn-soft); padding: 10px 12px; border-radius: 8px; margin: 0; }
+.aviso.error { border-color: var(--stop); background: var(--stop-soft); }
+.aviso.ok { border-color: var(--go); background: var(--go-soft); }
+.reloj-panel { text-align: center; display: flex; flex-direction: column; gap: 4px; padding-block: 8px; }
+.fecha { color: var(--muted); }
+.reloj { font-family: var(--font-mono); font-size: clamp(44px, 14vw, 64px); font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.1; }
+.estado { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--font-display); font-weight: 600; font-size: 19px; letter-spacing: .05em; text-transform: uppercase; }
+.piloto { width: 14px; height: 14px; border-radius: 50%; background: var(--bezel); box-shadow: inset 0 0 0 2px rgba(0,0,0,.15); }
+.piloto.trabajando { background: var(--go); box-shadow: 0 0 0 3px var(--go-soft), 0 0 10px var(--go); }
+.piloto.pausa { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft), 0 0 10px var(--warn); }
+.sync { font-size: 13px; color: var(--muted); }
+.sync.ok::before { content: "● "; color: var(--go); }
+.sync.ko::before { content: "● "; color: var(--warn); }
+.botonera { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; justify-items: center; }
+.pulsador { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; padding: 4px; }
+.pulsador .cap { width: 84px; height: 84px; border-radius: 50%; border: 7px solid var(--bezel); background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.45), transparent 45%), var(--c); box-shadow: 0 4px 0 rgba(0,0,0,.25), inset 0 -4px 8px rgba(0,0,0,.2); transition: transform .08s, box-shadow .08s; }
+.pulsador:active:not(:disabled) .cap { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.25), inset 0 -2px 6px rgba(0,0,0,.2); }
+.pulsador .lbl { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
+.pulsador:disabled { cursor: default; }
+.pulsador:disabled .cap { filter: grayscale(.85); opacity: .35; box-shadow: none; }
+.pulsador:disabled .lbl { color: var(--muted); }
+.go { --c: var(--go); } .warn { --c: var(--warn); } .stop { --c: var(--stop); }
+.secundario { width: 100%; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 12px; font-weight: 600; color: var(--accent); }
+.secundario:disabled { color: var(--muted); opacity: .6; }
+.principal { width: 100%; border: 0; background: var(--accent); color: #fff; border-radius: 8px; padding: 13px; font-weight: 600; font-size: 16px; }
+.principal:disabled { opacity: .6; }
+.campo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+.campo input, .campo select { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 11px 10px; font-size: 16px; color: var(--ink); width: 100%; }
+.tarjeta { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.tarjeta h2 { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .06em; text-transform: uppercase; margin: 0; }
+.cab { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cab small { color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.kpi { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kpi span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.kpi b { font-family: var(--font-mono); font-weight: 500; font-size: 20px; font-variant-numeric: tabular-nums; }
+.fichas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ficha { display: grid; grid-template-columns: 58px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px dashed var(--line); }
+.ficha:first-child { border-top: 0; }
+.ficha time { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 16px; }
+.ficha .t { display: flex; flex-direction: column; min-width: 0; }
+.ficha .t > span { font-weight: 600; }
+.ficha .t small { color: var(--muted); overflow-wrap: anywhere; }
+.ficha .marca-estado { font-size: 12px; color: var(--muted); text-align: right; }
+.ficha .marca-estado.pend { color: var(--warn); }
+.ficha .marca-estado.inc { color: var(--stop); }
+.tipo-entrada, .tipo-reanudar { color: var(--go); } .tipo-pausa { color: var(--warn); } .tipo-salida { color: var(--stop); } .tipo-cambio_obra { color: var(--accent); }
+.vacio { color: var(--muted); margin: 0; }
+.dia { display: flex; flex-direction: column; gap: 6px; }
+.dia + .dia { border-top: 1px solid var(--line); padding-top: 10px; }
+.dia-cab { display: flex; justify-content: space-between; font-weight: 600; }
+.dia-cab b { font-family: var(--font-mono); font-weight: 500; }
+.texto-legal { font-size: 12px; color: var(--muted); margin: 0; }
+.login { display: flex; flex-direction: column; gap: 12px; }
+.pie { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.enlace { border: 0; background: none; color: var(--accent); padding: 6px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="marca"><b>Fichaje</b><small id="cabEmpresa">Nexa Hub</small></div>
+    <nav class="tabs" id="tabs" hidden>
+      <button type="button" data-vista="hoy" aria-selected="true">Hoy</button>
+      <button type="button" data-vista="historial" aria-selected="false">Historial</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <p class="aviso" id="mensaje" role="status" hidden></p>
+
+    <!-- Inicio de sesión -->
+    <section class="vista" id="vistaLogin" hidden>
+      <form class="tarjeta login" id="formLogin" autocomplete="on">
+        <h2>Entrar</h2>
+        <label class="campo">Código de empresa
+          <input name="empresa" autocapitalize="characters" autocomplete="organization" required maxlength="20">
+        </label>
+        <label class="campo">Usuario
+          <input name="usuario" autocapitalize="none" autocomplete="username" required maxlength="50">
+        </label>
+        <label class="campo">Clave
+          <input name="clave" type="password" autocomplete="current-password" required maxlength="72">
+        </label>
+        <button class="principal" type="submit">Entrar</button>
+      </form>
+      <p class="texto-legal">Tu empresa guarda la hora de cada fichaje y la ubicación GPS de ese momento para cumplir el registro de jornada. La app no sigue tu posición fuera de los fichajes.</p>
+      <p class="texto-legal" id="consejoInstalar" hidden>Para usarla como app: en el iPhone toca Compartir y luego «Añadir a pantalla de inicio». En Android, menú del navegador y «Instalar app».</p>
+    </section>
+
+    <!-- Fichar -->
+    <section class="vista" id="vistaHoy" hidden>
+      <div class="reloj-panel">
+        <div class="fecha" id="fecha"></div>
+        <div class="reloj" id="reloj">--:--:--</div>
+        <div class="estado"><span class="piloto" id="piloto"></span><span id="textoEstado">Fuera de jornada</span></div>
+        <div class="sync" id="sync"></div>
+      </div>
+
+      <label class="campo" id="campoObra">Obra
+        <select id="obra"></select>
+      </label>
+
+      <div class="botonera">
+        <button type="button" class="pulsador go" data-tipo="entrada"><span class="cap"></span><span class="lbl" data-texto>Entrada</span></button>
+        <button type="button" class="pulsador warn" data-tipo="pausa"><span class="cap"></span><span class="lbl">Pausa</span></button>
+        <button type="button" class="pulsador stop" data-tipo="salida"><span class="cap"></span><span class="lbl">Salida</span></button>
+      </div>
+      <button type="button" class="secundario" id="btnCambioObra">Cambiar a la obra elegida</button>
+
+      <div class="tarjeta">
+        <div class="cab"><h2>Hoy</h2><small id="obraActual"></small></div>
+        <div class="kpis">
+          <div class="kpi"><span>Trabajado</span><b id="kTrabajo">0:00</b></div>
+          <div class="kpi"><span>Pausas</span><b id="kPausa">0:00</b></div>
+        </div>
+        <ul class="fichas" id="listaHoy"></ul>
+      </div>
+
+      <div class="pie">
+        <span class="texto-legal" id="quien"></span>
+        <button type="button" class="enlace" id="btnSalirSesion">Cerrar sesión</button>
+      </div>
+    </section>
+
+    <!-- Historial -->
+    <section class="vista" id="vistaHistorial" hidden>
+      <div class="tarjeta">
+        <div class="cab"><h2>Últimos 31 días</h2><small id="totalHistorial"></small></div>
+        <div id="listaHistorial"><p class="vacio">Cargando…</p></div>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
