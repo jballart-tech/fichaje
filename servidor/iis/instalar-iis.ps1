@@ -4,7 +4,8 @@
   Uso (PowerShell como administrador, en el SRV01):
     cd C:\NexaHub\fichaje\iis
     .\instalar-iis.ps1 -Dominio fitxatge.tudominio.com
-    .\instalar-iis.ps1 -Dominio fitxatge.tudominio.com -Huella <huella del certificado comodín>
+  Busca automáticamente el certificado comodín (*.tudominio.com) en Equipo local > Personal.
+  Si hay varios o no lo encuentra, indica cuál con -Huella <huella del certificado>.
 
   Antes hace falta:
     - IIS con los módulos URL Rewrite y Application Request Routing (ARR) instalados.
@@ -57,7 +58,20 @@ if (-not (Get-WebBinding -Name $Nombre -Protocol https -HostHeader $Dominio)) {
   New-WebBinding -Name $Nombre -Protocol https -Port 443 -HostHeader $Dominio -SslFlags 1
 }
 
-# 6. Certificado.
+# 6. Certificado. Sin -Huella, busca el comodín del dominio de Nexa Hub en el almacén del equipo.
+if (-not $Huella) {
+  $comodin = '*.' + ($Dominio -replace '^[^.]+\.', '')
+  $candidatos = Get-ChildItem Cert:\LocalMachine\My | Where-Object {
+    $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) -and
+    ($_.DnsNameList.Unicode -contains $comodin -or $_.DnsNameList.Unicode -contains $Dominio)
+  } | Sort-Object NotAfter -Descending
+  if ($candidatos) {
+    $Huella = $candidatos[0].Thumbprint
+    Write-Host "Certificado encontrado: $comodin, caduca el $($candidatos[0].NotAfter.ToString('dd/MM/yyyy'))."
+  } else {
+    Write-Host "No encuentro un certificado válido para $comodin en Equipo local > Personal."
+  }
+}
 if ($Huella) {
   $Huella = $Huella -replace '\s', ''
   if (-not (Test-Path "Cert:\LocalMachine\My\$Huella")) { throw "No encuentro el certificado $Huella en Equipo local > Personal." }

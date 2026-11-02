@@ -58,9 +58,11 @@ La app necesita HTTPS para el GPS y para instalarse en el móvil. Se publica en 
    .\instalar-iis.ps1 -Dominio fitxatge.tudominio.com
    ```
    El script activa el proxy de ARR, crea la carpeta `C:\inetpub\fitxatge` con el `web.config`, el grupo de aplicaciones y el sitio con HTTP y HTTPS (SNI).
-4. Certificado:
-   - Si Nexa Hub tiene un certificado comodín (`*.tudominio.com`), vuelve a ejecutar el script con `-Huella <huella del certificado>`.
-   - Si no, ejecuta win-acme (`wacs.exe`) y elige el sitio Fitxatge. Emite un certificado gratuito de Let's Encrypt y lo renueva solo.
+4. Certificado: el script busca el certificado comodín de Nexa Hub (`*.tudominio.com`) en Equipo local > Personal y lo asigna al sitio. Si no lo encuentra, ejecútalo otra vez con `-Huella <huella>`. La huella sale con:
+   ```
+   Get-ChildItem Cert:\LocalMachine\My | Select-Object Thumbprint, Subject, NotAfter
+   ```
+   Cuando renueves el comodín de Nexa Hub, vuelve a ejecutar el script para asignar el nuevo al sitio Fitxatge.
 5. Deja `PROXIES=1` en `.env` para que la API lea la IP real del móvil.
 6. Prueba desde el móvil con datos móviles (sin wifi): `https://fitxatge.tudominio.com`.
 
