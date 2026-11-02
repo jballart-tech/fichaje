@@ -17,7 +17,7 @@ App de fichaje para iPhone y Android con envío a Nexa Hub y registro en SQL Ser
 | `public/` | La app del móvil (PWA). La sirve la propia API |
 | `sql/` | Scripts de base de datos |
 | `herramientas/admin.js` | Consola para instalar la base de datos y dar de alta empresas, personas y obras |
-| `iis/web.config` | Configuración del subdominio en IIS |
+| `iis/` | `web.config` e `instalar-iis.ps1` para el subdominio fitxatge en IIS |
 | `INTEGRACION_NEXA_HUB.md` | Rutas de administración y tablas para las pantallas de Nexa Hub |
 
 ## Instalar en el servidor (SRV01, Windows)
@@ -46,18 +46,23 @@ nssm set FichajeNexaHub AppStderr C:\NexaHub\fichaje\logs\errores.log
 nssm start FichajeNexaHub
 ```
 
-### Publicarlo en un subdominio de Nexa Hub
+### Publicarlo en el subdominio fitxatge de Nexa Hub
 
-La app necesita HTTPS para el GPS y para instalarse en el móvil. Se publica en un subdominio propio, por ejemplo `fichaje.nexahub.es`.
+La app necesita HTTPS para el GPS y para instalarse en el móvil. Se publica en `fitxatge.` + el dominio de Nexa Hub, con el mismo IIS del SRV01.
 
-1. DNS: crea un registro A (o CNAME) `fichaje` que apunte a la misma IP pública que el dominio de Nexa Hub.
-2. IIS: instala URL Rewrite y Application Request Routing (ARR). En ARR, Server Proxy Settings, marca «Enable proxy».
-3. Crea un sitio nuevo en IIS:
-   - Carpeta física: `C:\inetpub\fichaje`, con el archivo `iis\web.config` de este proyecto.
-   - Enlace HTTPS, puerto 443, nombre de host `fichaje.nexahub.es`, con «Requerir indicación de nombre de servidor» (SNI).
-4. Certificado: si Nexa Hub ya tiene un certificado comodín (`*.nexahub.es`), úsalo. Si no, emite uno gratuito con win-acme (Let's Encrypt), que lo renueva solo.
+1. DNS: crea un registro A (o CNAME) `fitxatge` que apunte a la misma IP pública que Nexa Hub.
+2. IIS: instala URL Rewrite y Application Request Routing (ARR) si no los tienes.
+3. Abre PowerShell como administrador y crea el sitio:
+   ```
+   cd C:\NexaHub\fichaje\iis
+   .\instalar-iis.ps1 -Dominio fitxatge.tudominio.com
+   ```
+   El script activa el proxy de ARR, crea la carpeta `C:\inetpub\fitxatge` con el `web.config`, el grupo de aplicaciones y el sitio con HTTP y HTTPS (SNI).
+4. Certificado:
+   - Si Nexa Hub tiene un certificado comodín (`*.tudominio.com`), vuelve a ejecutar el script con `-Huella <huella del certificado>`.
+   - Si no, ejecuta win-acme (`wacs.exe`) y elige el sitio Fitxatge. Emite un certificado gratuito de Let's Encrypt y lo renueva solo.
 5. Deja `PROXIES=1` en `.env` para que la API lea la IP real del móvil.
-6. Prueba desde el móvil con datos (sin wifi): `https://fichaje.nexahub.es`.
+6. Prueba desde el móvil con datos móviles (sin wifi): `https://fitxatge.tudominio.com`.
 
 No abras el puerto 3100 en el router ni en el firewall. Solo IIS debe llegar a él.
 
