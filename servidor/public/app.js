@@ -42,8 +42,9 @@ const app = {
   conectado: navigator.onLine,
 };
 
-const NOMBRES = { entrada: 'Entrada', pausa: 'Pausa', reanudar: 'Reanudar', cambio_obra: 'Cambio de obra', salida: 'Salida' };
-const ESTADOS = { fuera: 'Fuera de jornada', trabajando: 'Trabajando', pausa: 'En pausa' };
+const t = (clave, parametros) => idioma.t(clave, parametros);
+const nombreTipo = tipo => t(`tipo_${tipo}`);
+const delServidor = mensaje => idioma.servidor(mensaje);
 const SIGUIENTE = { entrada: 'trabajando', pausa: 'pausa', reanudar: 'trabajando', cambio_obra: 'trabajando', salida: 'fuera' };
 const PERMITIDO = { entrada: ['fuera'], pausa: ['trabajando'], reanudar: ['pausa'], cambio_obra: ['trabajando'], salida: ['trabajando', 'pausa'] };
 
@@ -143,11 +144,11 @@ function sumarPorDia(fichajes, hasta = ahora()) {
 function filaFichaje(f) {
   const h = new Date(f.hora_fichaje);
   let marca = '';
-  if (f.pendiente) marca = '<span class="marca-estado pend">Pendiente de enviar</span>';
-  else if (f.incidencia) marca = `<span class="marca-estado inc">${escapar(f.incidencia)}</span>`;
-  else if (f.sin_conexion) marca = '<span class="marca-estado">Sin conexión</span>';
+  if (f.pendiente) marca = `<span class="marca-estado pend">${t('pendienteEnviar')}</span>`;
+  else if (f.incidencia) marca = `<span class="marca-estado inc">${escapar(delServidor(f.incidencia))}</span>`;
+  else if (f.sin_conexion) marca = `<span class="marca-estado">${t('sinConexion')}</span>`;
   return `<li class="ficha"><time>${horaCorta(h)}</time>
-    <span class="t"><span class="tipo-${f.tipo}">${NOMBRES[f.tipo] || f.tipo}</span>${f.obra ? `<small>${escapar(f.obra)}</small>` : ''}</span>
+    <span class="t"><span class="tipo-${f.tipo}">${nombreTipo(f.tipo)}</span>${f.obra ? `<small>${escapar(f.obra)}</small>` : ''}</span>
     ${marca}</li>`;
 }
 
@@ -165,7 +166,7 @@ function mostrarVista(nombre) {
 function pintarReloj() {
   const d = ahora();
   $('#reloj').textContent = `${dosCifras(d.getHours())}:${dosCifras(d.getMinutes())}:${dosCifras(d.getSeconds())}`;
-  $('#fecha').textContent = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('#fecha').textContent = d.toLocaleDateString(idioma.locale(), { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 function pintar() {
@@ -176,13 +177,13 @@ function pintar() {
   $('#cabEmpresa').textContent = empresa.nombre;
   $('#quien').textContent = `${app.datos.trabajador.nombre} · ${empresa.codigo}`;
   $('#piloto').className = `piloto ${estado}`;
-  $('#textoEstado').textContent = ESTADOS[estado];
+  $('#textoEstado').textContent = t(`estado_${estado}`);
 
   // Selector de obra.
   const obras = app.datos.obras || [];
   const select = $('#obra');
   const elegida = select.value || String(guardado.leer(CLAVES.obra, '') || '');
-  select.innerHTML = `<option value="">${empresa.obra_obligatoria ? 'Elige una obra' : 'Sin obra'}</option>`
+  select.innerHTML = `<option value="">${t(empresa.obra_obligatoria ? 'eligeObra' : 'sinObra')}</option>`
     + obras.map(o => `<option value="${o.id}">${escapar(o.nombre)}${o.cliente ? ` · ${escapar(o.cliente)}` : ''}</option>`).join('');
   select.value = obras.some(o => String(o.id) === elegida) ? elegida : '';
   $('#campoObra').hidden = obras.length === 0;
@@ -191,7 +192,7 @@ function pintar() {
   // El primer pulsador es Entrada o Reanudar según el estado.
   const primero = $('.pulsador[data-tipo="entrada"], .pulsador[data-tipo="reanudar"]');
   primero.dataset.tipo = estado === 'pausa' ? 'reanudar' : 'entrada';
-  primero.querySelector('.lbl').textContent = estado === 'pausa' ? 'Reanudar' : 'Entrada';
+  primero.querySelector('.lbl').textContent = nombreTipo(primero.dataset.tipo);
   $$('.pulsador').forEach(b => { b.disabled = app.fichando || !PERMITIDO[b.dataset.tipo].includes(estado); });
   const cambio = $('#btnCambioObra');
   cambio.hidden = obras.length === 0 || estado !== 'trabajando';
@@ -205,25 +206,26 @@ function pintar() {
   $('#kTrabajo').textContent = duracion(resumen.trabajo);
   $('#kPausa').textContent = duracion(resumen.pausa);
   const deHoy = visibles.filter(f => fechaClave(new Date(f.hora_fichaje)) === hoy || f.pendiente);
-  $('#listaHoy').innerHTML = deHoy.length ? deHoy.map(filaFichaje).join('') : '<li class="vacio">Sin fichajes hoy.</li>';
+  $('#listaHoy').innerHTML = deHoy.length ? deHoy.map(filaFichaje).join('') : `<li class="vacio">${t('sinFichajesHoy')}</li>`;
 
   // Estado de envío.
   const sync = $('#sync');
   if (app.cola.length) {
     sync.className = 'sync ko';
-    sync.textContent = `${app.cola.length} fichaje${app.cola.length > 1 ? 's' : ''} pendiente${app.cola.length > 1 ? 's' : ''} de enviar`;
+    sync.textContent = app.cola.length === 1 ? t('pendientes1') : t('pendientesN', { n: app.cola.length });
   } else {
     sync.className = app.conectado ? 'sync ok' : 'sync ko';
-    sync.textContent = app.conectado ? 'Conectado con Nexa Hub' : 'Sin conexión';
+    sync.textContent = t(app.conectado ? 'conectado' : 'sinConexion');
   }
 }
 
 async function cargarHistorial() {
   const caja = $('#listaHistorial');
   if (!navigator.onLine) {
-    caja.innerHTML = '<p class="vacio">Necesitas conexión para ver el historial.</p>';
+    caja.innerHTML = `<p class="vacio">${t('historialSinRed')}</p>`;
     return;
   }
+  caja.innerHTML = `<p class="vacio">${t('cargando')}</p>`;
   try {
     const r = await pedir('/fichajes?dias=31');
     if (r.estado === 401) return sesionCaducada(r.datos.error);
@@ -234,13 +236,13 @@ async function cargarHistorial() {
     caja.innerHTML = orden.length ? orden.map(d => {
       const info = dias.get(d);
       total += info.trabajo;
-      const titulo = new Date(`${d}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+      const titulo = new Date(`${d}T12:00:00`).toLocaleDateString(idioma.locale(), { weekday: 'short', day: 'numeric', month: 'short' });
       return `<div class="dia"><div class="dia-cab"><span>${titulo}</span><b>${duracion(info.trabajo)}</b></div>
         <ul class="fichas">${info.fichajes.map(filaFichaje).join('')}</ul></div>`;
-    }).join('') : '<p class="vacio">Sin fichajes en este periodo.</p>';
-    $('#totalHistorial').textContent = `Total ${duracion(total)} h`;
+    }).join('') : `<p class="vacio">${t('sinFichajesPeriodo')}</p>`;
+    $('#totalHistorial').textContent = t('total', { h: duracion(total) });
   } catch {
-    caja.innerHTML = '<p class="vacio">No se pudo cargar el historial.</p>';
+    caja.innerHTML = `<p class="vacio">${t('historialError')}</p>`;
   }
 }
 
@@ -264,7 +266,7 @@ async function cargar() {
     app.conectado = false;
   }
   if (!app.datos) {
-    mostrarMensaje('Sin conexión. Conéctate una vez para cargar tus datos.', 'error', 0);
+    mostrarMensaje(t('sinDatos'), 'error', 0);
     return;
   }
   pintar();
@@ -274,7 +276,7 @@ function sesionCaducada(texto) {
   app.token = null;
   guardado.borrar(CLAVES.token);
   mostrarVista('login');
-  mostrarMensaje(`${texto || 'La sesión ha caducado.'}${app.cola.length ? ' Tus fichajes pendientes se enviarán al volver a entrar.' : ''}`, 'error', 0);
+  mostrarMensaje(`${texto ? delServidor(texto) : t('sesionCaducada')}${app.cola.length ? `. ${t('pendientesAlEntrar')}` : ''}`, 'error', 0);
 }
 
 async function enviarCola() {
@@ -304,9 +306,9 @@ async function enviarCola() {
       guardado.escribir(CLAVES.cola, app.cola);
       if (r.estado === 200 || r.estado === 201) {
         enviados += 1;
-        if (r.datos.incidencia) mostrarMensaje(`Fichaje guardado con aviso: ${r.datos.incidencia}`, 'error', 8);
+        if (r.datos.incidencia) mostrarMensaje(t('guardadoConAviso', { x: delServidor(r.datos.incidencia) }), 'error', 8);
       } else {
-        mostrarMensaje(`${NOMBRES[f.tipo]} no registrada: ${r.datos.error || 'error'}`, 'error', 8);
+        mostrarMensaje(t('noRegistrado', { tipo: nombreTipo(f.tipo).toLowerCase(), x: delServidor(r.datos.error) || t('errorGenerico') }), 'error', 8);
       }
     }
   } finally {
@@ -336,18 +338,18 @@ async function fichar(tipo) {
   const obraElegida = Number($('#obra').value) || null;
 
   if ((tipo === 'entrada' && empresa.obra_obligatoria) || tipo === 'cambio_obra') {
-    if (!obraElegida) return mostrarMensaje('Elige una obra antes de fichar.');
+    if (!obraElegida) return mostrarMensaje(t('eligeObraAntes'));
   }
-  if (tipo === 'salida' && !confirm('¿Registrar la salida y cerrar la jornada?')) return;
+  if (tipo === 'salida' && !confirm(t('confirmarSalida'))) return;
 
   app.fichando = true;
   // La hora se toma al pulsar, no cuando llega el GPS.
   const hora = ahora().toISOString();
   pintar();
-  mostrarMensaje('Obteniendo ubicación…', 'ok', 0);
+  mostrarMensaje(t('buscandoGps'), 'ok', 0);
   const gps = await ubicacion();
   if (!gps && empresa.gps_obligatorio) {
-    mostrarMensaje('Sin ubicación. El fichaje se guarda con aviso para tu empresa.', 'error', 8);
+    mostrarMensaje(t('sinGps'), 'error', 8);
   } else {
     $('#mensaje').hidden = true;
   }
@@ -362,11 +364,11 @@ async function fichar(tipo) {
   };
   app.cola.push(f);
   if (!guardado.escribir(CLAVES.cola, app.cola)) {
-    mostrarMensaje('El móvil no deja guardar datos. Sal del modo privado del navegador.', 'error', 0);
+    mostrarMensaje(t('sinAlmacen'), 'error', 0);
   }
   if (obraElegida) guardado.escribir(CLAVES.obra, obraElegida);
   app.fichando = false;
-  if (gps || !empresa.gps_obligatorio) mostrarMensaje(`${NOMBRES[tipo]} registrada a las ${horaCorta(new Date(hora))}.`, 'ok', 4);
+  if (gps || !empresa.gps_obligatorio) mostrarMensaje(t('registrado', { tipo: nombreTipo(tipo), hora: horaCorta(new Date(hora)) }), 'ok', 4);
   pintar();
   if (navigator.vibrate) navigator.vibrate(60);
   enviarCola();
@@ -382,11 +384,11 @@ $('#formLogin').addEventListener('submit', async e => {
   try {
     const datos = Object.fromEntries(new FormData(form));
     const r = await pedir('/login', { metodo: 'POST', cuerpo: datos });
-    if (r.estado !== 200) return mostrarMensaje(r.datos.error || 'No se pudo entrar.');
+    if (r.estado !== 200) return mostrarMensaje(delServidor(r.datos.error) || t('noEntrar'));
     // Si entra otra persona, los pendientes de la anterior no se mezclan.
     const anterior = app.datos?.trabajador?.usuario;
     if (app.cola.length && anterior && anterior !== datos.usuario.trim().toLowerCase()) {
-      return mostrarMensaje(`Hay fichajes pendientes de ${anterior}. Entra primero con ese usuario para enviarlos.`, 'error', 0);
+      return mostrarMensaje(t('pendientesOtro', { u: anterior }), 'error', 0);
     }
     app.token = r.datos.token;
     guardado.escribir(CLAVES.token, app.token);
@@ -396,7 +398,7 @@ $('#formLogin').addEventListener('submit', async e => {
     await cargar();
     enviarCola();
   } catch {
-    mostrarMensaje('Sin conexión. Necesitas internet para entrar la primera vez.');
+    mostrarMensaje(t('entrarSinRed'));
   } finally {
     boton.disabled = false;
   }
@@ -404,13 +406,19 @@ $('#formLogin').addEventListener('submit', async e => {
 
 $$('.pulsador').forEach(b => b.addEventListener('click', () => fichar(b.dataset.tipo)));
 $('#btnCambioObra').addEventListener('click', () => fichar('cambio_obra'));
+$$('[data-idioma]').forEach(b => b.addEventListener('click', () => {
+  idioma.cambiar(b.dataset.idioma);
+  pintarReloj();
+  pintar();
+  if (!$('#vistaHistorial').hidden) cargarHistorial();
+}));
 $('#obra').addEventListener('change', pintar);
 $$('#tabs button').forEach(b => b.addEventListener('click', () => mostrarVista(b.dataset.vista)));
 
 $('#btnSalirSesion').addEventListener('click', () => {
-  if (app.cola.length) return mostrarMensaje('Tienes fichajes sin enviar. Conéctate antes de cerrar sesión.');
-  if (!confirm('¿Cerrar sesión en este móvil?')) return;
-  Object.values(CLAVES).forEach(c => guardado.borrar(c));
+  if (app.cola.length) return mostrarMensaje(t('pendientesSalir'));
+  if (!confirm(t('confirmarCerrar'))) return;
+  Object.values(CLAVES).forEach(c => guardado.borrar(c)); // El idioma se conserva.
   location.reload();
 });
 
@@ -425,6 +433,7 @@ setInterval(() => { if (app.cola.length) enviarCola(); else if (!$('#vistaHoy').
 
 // Arranque
 
+idioma.iniciar();
 pintarReloj();
 const esApp = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 $('#consejoInstalar').hidden = esApp;

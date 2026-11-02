@@ -1,6 +1,6 @@
 // Sube la versión al publicar cambios para que los móviles descarguen la app nueva.
-const VERSION = 'fichaje-nexa-v1';
-const BASE = ['./', 'index.html', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+const VERSION = 'fichaje-nexa-v2';
+const BASE = ['./', 'index.html', 'idiomas.js', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(BASE)).then(() => self.skipWaiting()));

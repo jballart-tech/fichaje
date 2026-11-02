@@ -5,7 +5,7 @@ class ErrorPeticion extends Error {
   }
 }
 
-const falla = mensaje => { throw new ErrorPeticion(400, mensaje); };
+const falla = mensaje => { throw new ErrorPeticion(400, mensaje.charAt(0).toUpperCase() + mensaje.slice(1)); };
 
 function texto(valor, campo, { max = 150, obligatorio = false } = {}) {
   if (valor === undefined || valor === null || String(valor).trim() === '') {

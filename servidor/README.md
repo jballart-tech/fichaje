@@ -1,6 +1,6 @@
 # Fichaje Nexa Hub
 
-App de fichaje para iPhone y Android con envío a Nexa Hub y registro en SQL Server.
+App de fichaje para iPhone y Android con envío a Nexa Hub y registro en SQL Server. En catalán y castellano.
 
 - Multiempresa: cada empresa tiene sus trabajadores y sus obras.
 - Entrada, pausa, reanudar, cambio de obra y salida.
@@ -17,6 +17,7 @@ App de fichaje para iPhone y Android con envío a Nexa Hub y registro en SQL Ser
 | `public/` | La app del móvil (PWA). La sirve la propia API |
 | `sql/` | Scripts de base de datos |
 | `herramientas/admin.js` | Consola para instalar la base de datos y dar de alta empresas, personas y obras |
+| `iis/web.config` | Configuración del subdominio en IIS |
 | `INTEGRACION_NEXA_HUB.md` | Rutas de administración y tablas para las pantallas de Nexa Hub |
 
 ## Instalar en el servidor (SRV01, Windows)
@@ -45,14 +46,20 @@ nssm set FichajeNexaHub AppStderr C:\NexaHub\fichaje\logs\errores.log
 nssm start FichajeNexaHub
 ```
 
-### Publicarlo con HTTPS
+### Publicarlo en un subdominio de Nexa Hub
 
-La app necesita HTTPS para el GPS y para instalarse en el móvil. Dos opciones:
+La app necesita HTTPS para el GPS y para instalarse en el móvil. Se publica en un subdominio propio, por ejemplo `fichaje.nexahub.es`.
 
-- Subdominio nuevo, por ejemplo `fichaje.tudominio.com`, con IIS + URL Rewrite + ARR como proxy inverso hacia `http://localhost:3100`. Deja `PROXIES=1` en `.env`.
-- Ruta dentro del dominio actual de Nexa Hub. La app está pensada para ir en la raíz de un dominio o subdominio, así que es más sencilla la primera opción.
+1. DNS: crea un registro A (o CNAME) `fichaje` que apunte a la misma IP pública que el dominio de Nexa Hub.
+2. IIS: instala URL Rewrite y Application Request Routing (ARR). En ARR, Server Proxy Settings, marca «Enable proxy».
+3. Crea un sitio nuevo en IIS:
+   - Carpeta física: `C:\inetpub\fichaje`, con el archivo `iis\web.config` de este proyecto.
+   - Enlace HTTPS, puerto 443, nombre de host `fichaje.nexahub.es`, con «Requerir indicación de nombre de servidor» (SNI).
+4. Certificado: si Nexa Hub ya tiene un certificado comodín (`*.nexahub.es`), úsalo. Si no, emite uno gratuito con win-acme (Let's Encrypt), que lo renueva solo.
+5. Deja `PROXIES=1` en `.env` para que la API lea la IP real del móvil.
+6. Prueba desde el móvil con datos (sin wifi): `https://fichaje.nexahub.es`.
 
-No abras el puerto 3100 al exterior. Solo IIS debe llegar a él.
+No abras el puerto 3100 en el router ni en el firewall. Solo IIS debe llegar a él.
 
 ## Dar de alta datos (mientras no estén las pantallas de Nexa Hub)
 
@@ -81,6 +88,10 @@ En iPhone, los fichajes sin conexión se envían cuando la persona vuelve a abri
 npm test                       # reglas de jornada
 PRUEBA_BD=1 npm test           # además, prueba completa contra el SQL Server del .env (usa una base de datos de pruebas)
 ```
+
+## Idiomas
+
+La app sale en catalán si el móvil está en catalán y en castellano en el resto de casos. La persona lo cambia con los botones CA y ES. Los textos están en `public/idiomas.js`. El servidor y Nexa Hub trabajan en castellano.
 
 ## Publicar cambios de la app
 

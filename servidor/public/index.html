@@ -106,16 +106,20 @@ main .wrap { display: flex; flex-direction: column; gap: 16px; padding-block: 16
 .texto-legal { font-size: 12px; color: var(--muted); margin: 0; }
 .login { display: flex; flex-direction: column; gap: 12px; }
 .pie { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.idiomas { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.idiomas button { border: 0; background: none; padding: 5px 10px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.idiomas button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.pie { align-items: center; }
 .enlace { border: 0; background: none; color: var(--accent); padding: 6px 0; font-size: 14px; }
 </style>
 </head>
 <body>
 <header class="top">
   <div class="wrap">
-    <div class="marca"><b>Fichaje</b><small id="cabEmpresa">Nexa Hub</small></div>
+    <div class="marca"><b data-t="marca">Fichaje</b><small id="cabEmpresa">Nexa Hub</small></div>
     <nav class="tabs" id="tabs" hidden>
-      <button type="button" data-vista="hoy" aria-selected="true">Hoy</button>
-      <button type="button" data-vista="historial" aria-selected="false">Historial</button>
+      <button type="button" data-vista="hoy" aria-selected="true" data-t="tabHoy">Hoy</button>
+      <button type="button" data-vista="historial" aria-selected="false" data-t="tabHistorial">Historial</button>
     </nav>
   </div>
 </header>
@@ -127,20 +131,21 @@ main .wrap { display: flex; flex-direction: column; gap: 16px; padding-block: 16
     <!-- Inicio de sesión -->
     <section class="vista" id="vistaLogin" hidden>
       <form class="tarjeta login" id="formLogin" autocomplete="on">
-        <h2>Entrar</h2>
-        <label class="campo">Código de empresa
+        <div class="cab"><h2 data-t="entrarTitulo">Entrar</h2>
+          <span class="idiomas"><button type="button" data-idioma="ca" aria-pressed="false">CA</button><button type="button" data-idioma="es" aria-pressed="false">ES</button></span></div>
+        <label class="campo"><span data-t="codigoEmpresa">Código de empresa</span>
           <input name="empresa" autocapitalize="characters" autocomplete="organization" required maxlength="20">
         </label>
-        <label class="campo">Usuario
+        <label class="campo"><span data-t="usuario">Usuario</span>
           <input name="usuario" autocapitalize="none" autocomplete="username" required maxlength="50">
         </label>
-        <label class="campo">Clave
+        <label class="campo"><span data-t="clave">Clave</span>
           <input name="clave" type="password" autocomplete="current-password" required maxlength="72">
         </label>
-        <button class="principal" type="submit">Entrar</button>
+        <button class="principal" type="submit" data-t="entrar">Entrar</button>
       </form>
-      <p class="texto-legal">Tu empresa guarda la hora de cada fichaje y la ubicación GPS de ese momento para cumplir el registro de jornada. La app no sigue tu posición fuera de los fichajes.</p>
-      <p class="texto-legal" id="consejoInstalar" hidden>Para usarla como app: en el iPhone toca Compartir y luego «Añadir a pantalla de inicio». En Android, menú del navegador y «Instalar app».</p>
+      <p class="texto-legal" data-t="legal">Tu empresa guarda la hora de cada fichaje y la ubicación GPS de ese momento para cumplir el registro de jornada. La app no sigue tu posición fuera de los fichajes.</p>
+      <p class="texto-legal" id="consejoInstalar" data-t="instalar" hidden>Para usarla como app: en el iPhone toca Compartir y luego «Añadir a pantalla de inicio». En Android, menú del navegador y «Instalar app».</p>
     </section>
 
     <!-- Fichar -->
@@ -152,41 +157,43 @@ main .wrap { display: flex; flex-direction: column; gap: 16px; padding-block: 16
         <div class="sync" id="sync"></div>
       </div>
 
-      <label class="campo" id="campoObra">Obra
+      <label class="campo" id="campoObra"><span data-t="obra">Obra</span>
         <select id="obra"></select>
       </label>
 
       <div class="botonera">
-        <button type="button" class="pulsador go" data-tipo="entrada"><span class="cap"></span><span class="lbl" data-texto>Entrada</span></button>
-        <button type="button" class="pulsador warn" data-tipo="pausa"><span class="cap"></span><span class="lbl">Pausa</span></button>
-        <button type="button" class="pulsador stop" data-tipo="salida"><span class="cap"></span><span class="lbl">Salida</span></button>
+        <button type="button" class="pulsador go" data-tipo="entrada"><span class="cap"></span><span class="lbl">Entrada</span></button>
+        <button type="button" class="pulsador warn" data-tipo="pausa"><span class="cap"></span><span class="lbl" data-t="tipo_pausa">Pausa</span></button>
+        <button type="button" class="pulsador stop" data-tipo="salida"><span class="cap"></span><span class="lbl" data-t="tipo_salida">Salida</span></button>
       </div>
-      <button type="button" class="secundario" id="btnCambioObra">Cambiar a la obra elegida</button>
+      <button type="button" class="secundario" id="btnCambioObra" data-t="cambiarObra">Cambiar a la obra elegida</button>
 
       <div class="tarjeta">
-        <div class="cab"><h2>Hoy</h2><small id="obraActual"></small></div>
+        <div class="cab"><h2 data-t="hoy">Hoy</h2><small id="obraActual"></small></div>
         <div class="kpis">
-          <div class="kpi"><span>Trabajado</span><b id="kTrabajo">0:00</b></div>
-          <div class="kpi"><span>Pausas</span><b id="kPausa">0:00</b></div>
+          <div class="kpi"><span data-t="trabajado">Trabajado</span><b id="kTrabajo">0:00</b></div>
+          <div class="kpi"><span data-t="pausas">Pausas</span><b id="kPausa">0:00</b></div>
         </div>
         <ul class="fichas" id="listaHoy"></ul>
       </div>
 
       <div class="pie">
         <span class="texto-legal" id="quien"></span>
-        <button type="button" class="enlace" id="btnSalirSesion">Cerrar sesión</button>
+        <span class="idiomas"><button type="button" data-idioma="ca" aria-pressed="false">CA</button><button type="button" data-idioma="es" aria-pressed="false">ES</button></span>
+        <button type="button" class="enlace" id="btnSalirSesion" data-t="cerrarSesion">Cerrar sesión</button>
       </div>
     </section>
 
     <!-- Historial -->
     <section class="vista" id="vistaHistorial" hidden>
       <div class="tarjeta">
-        <div class="cab"><h2>Últimos 31 días</h2><small id="totalHistorial"></small></div>
+        <div class="cab"><h2 data-t="ultimos31">Últimos 31 días</h2><small id="totalHistorial"></small></div>
         <div id="listaHistorial"><p class="vacio">Cargando…</p></div>
       </div>
     </section>
   </div>
 </main>
+<script src="idiomas.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

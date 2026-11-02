@@ -28,7 +28,7 @@ Fechas en ISO 8601, por ejemplo `desde=2026-11-01T00:00:00+01:00`. Periodo máxi
 Ejemplo:
 
 ```
-curl -H "X-Admin-Clave: ..." "https://fichaje.tudominio.com/api/admin/horas?empresa_id=1&desde=2026-11-01T00:00:00%2B01:00&hasta=2026-12-01T00:00:00%2B01:00"
+curl -H "X-Admin-Clave: ..." "https://fichaje.nexahub.es/api/admin/horas?empresa_id=1&desde=2026-11-01T00:00:00%2B01:00&hasta=2026-12-01T00:00:00%2B01:00"
 ```
 
 Respuesta de `/horas`:

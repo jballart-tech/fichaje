@@ -1,7 +1,7 @@
 {
-  "name": "Fichaje Nexa Hub",
-  "short_name": "Fichaje",
-  "description": "Registro de jornada por obra con envío a Nexa Hub.",
+  "name": "Fitxatge · Fichaje Nexa Hub",
+  "short_name": "Nexa Hub",
+  "description": "Registre de jornada per obra. Registro de jornada por obra.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",
